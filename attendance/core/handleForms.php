@@ -1,0 +1,87 @@
+<?php
+    require_once '../core/classLoaders.php';
+
+    
+    /* --- USERS --- */
+    // register
+    if (isset($_POST['registerReq'])) {
+
+        $userRole = $obj_Databse->sanitizeInput($_POST['userRole']);
+        $username = $obj_Databse->sanitizeInput($_POST['username']);
+        $firstName = $obj_Databse->sanitizeInput($_POST['firstName']);
+        $lastName = $obj_Databse->sanitizeInput($_POST['lastName']);
+        $tempPassword = $obj_Databse->sanitizeInput($_POST['password']);
+        $confirmPassword = $obj_Databse->sanitizeInput($_POST['confirmPassword']);
+
+
+        if ($tempPassword == $confirmPassword) {
+
+            if ($obj_Databse->validatePassword($tempPassword)) { // check password strength
+
+                $password = password_hash($tempPassword, PASSWORD_DEFAULT); // encrypt password
+
+                $data = [
+                    "userRole" => $userRole,
+                    "username" => $username,
+                    "firstName" => $firstName,
+                    "lastName" => $lastName,
+                    "password" => $password
+                ];
+
+                $result = $obj_Databse->create("users", $data);
+
+                echo $result;
+
+            } else {
+                echo "Weak password";
+            }
+        } else {
+            echo "Passwords not the same";
+        }
+        
+    }
+
+    // login
+    if (isset($_POST['loginReq'])) {
+
+        $username = $obj_Databse->sanitizeInput($_POST['username']);
+        $password = $obj_Databse->sanitizeInput($_POST['password']);
+
+        $check_User = $obj_Databse->check_UserExists($username);
+        
+        if ($check_User['result']) { // user found in database
+            
+            $role_FromDB = $check_User['userInfo']['userRole'];
+            $userId_FromDB = $check_User['userInfo']['id'];
+            $username_FromDB = $check_User['userInfo']['username'];
+            $password_FromDB = $check_User['userInfo']['password'];
+
+            if (password_verify($password, $password_FromDB)) {
+
+                $_SESSION['user_id'] = $userId_FromDB;
+                $_SESSION['username'] = $username_FromDB;
+                $_SESSION['role'] = $role_FromDB;
+
+                if ($_SESSION['role'] == 'Admin') {
+                    echo "Login as admin";
+                } else if ($_SESSION['role'] == 'Student') {
+                    echo "Login as student";
+                }
+
+            } else {
+                echo "Incorrect Password";
+            }
+
+        } else {
+            echo "User not yet registered";
+        }
+    }
+
+    // logout
+    if (isset($_GET['btn_Logout'])) {
+        unset($_SESSION['username']);
+        unset($_SESSION['role']);
+        header('Location: ../index.php');
+    }
+
+?>
